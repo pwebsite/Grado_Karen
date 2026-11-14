@@ -263,8 +263,60 @@
       .btn.fill:focus-visible {
         background: var(--navy-2);
       }
+
+      /* Cierre + lluvia de sobres */
       .end {
+        position: relative;
+        overflow: hidden;
         padding-bottom: 70px;
+      }
+      .end .wrap {
+        z-index: 1;
+      }
+      .gift {
+        margin-top: 0.4em;
+      }
+      .gift-small {
+        font-size: clamp(1.2rem, 4.8vw, 1.7rem);
+        letter-spacing: 0.02em;
+      }
+      .gift-big {
+        font-size: clamp(2.4rem, 10.5vw, 3.6rem);
+        color: var(--gold);
+        margin-top: 0.1em;
+      }
+      .rain {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .rain svg {
+        position: absolute;
+        top: -40px;
+        left: var(--x);
+        width: var(--w);
+        height: auto;
+        opacity: 0;
+        animation: fall var(--t) linear var(--d) infinite;
+        animation-play-state: paused;
+      }
+      .rain.on svg {
+        animation-play-state: running;
+      }
+      @keyframes fall {
+        0% {
+          transform: translate3d(0, 0, 0) rotate(var(--r0));
+          opacity: 0;
+        }
+        10%,
+        85% {
+          opacity: 0.9;
+        }
+        100% {
+          transform: translate3d(var(--sway), var(--h), 0) rotate(var(--r1));
+          opacity: 0;
+        }
       }
 
       /* Botón de música */
@@ -302,6 +354,9 @@
       @media (prefers-reduced-motion: reduce) {
         .letter {
           animation: none;
+        }
+        .rain {
+          display: none;
         }
       }
     </style>
@@ -341,6 +396,12 @@
             stroke-width="2.4"
             stroke-linejoin="round"
           />
+        </symbol>
+        <!-- Sobre pequeño para la lluvia -->
+        <symbol id="mini-env" viewBox="0 0 40 30">
+          <rect x="2" y="3" width="36" height="24" rx="3" fill="#f3e2b3" stroke="#1d2f52" stroke-width="1.8" />
+          <path d="M3 5L20 17L37 5" fill="none" stroke="#1d2f52" stroke-width="1.8" stroke-linejoin="round" />
+          <circle cx="20" cy="17" r="3" fill="#dba54a" stroke="#1d2f52" stroke-width="1" />
         </symbol>
       </defs>
     </svg>
@@ -456,8 +517,9 @@
         </div>
       </section>
 
-      <!-- 6. Cierre -->
+      <!-- 6. Cierre con lluvia de sobres -->
       <section class="light end">
+        <div class="rain" id="rain" aria-hidden="true"></div>
         <div class="wrap">
           <svg
             class="icon"
@@ -483,6 +545,10 @@
             <circle cx="104" cy="88" r="5" fill="#dba54a" />
           </svg>
           <h2 class="script">¡Te esperamos!</h2>
+          <div class="gift">
+            <p class="gift-small">Mi mejor regalo será</p>
+            <p class="script gift-big">Lluvia de sobres</p>
+          </div>
           <a class="btn fill" id="fRsvp" target="_blank" rel="noopener">Confirmar asistencia</a>
         </div>
       </section>
@@ -559,6 +625,41 @@
         c.setAttribute('viewBox', '0 0 560 350');
         c.setAttribute('preserveAspectRatio', 'xMidYMid slice');
         c.innerHTML = s;
+      })();
+
+      // Lluvia de sobres
+      (function () {
+        const rain = $('rain');
+        const sec = rain.parentElement;
+        const N = 14; // cantidad de sobres (sube o baja a gusto)
+        const NS = 'http://www.w3.org/2000/svg';
+        const R = (a, b) => a + Math.random() * (b - a);
+
+        for (let i = 0; i < N; i++) {
+          const svg = document.createElementNS(NS, 'svg');
+          svg.setAttribute('viewBox', '0 0 40 30');
+          const use = document.createElementNS(NS, 'use');
+          use.setAttribute('href', '#mini-env');
+          svg.appendChild(use);
+
+          const t = R(7, 12);
+          svg.style.setProperty('--x', R(0, 94) + '%');
+          svg.style.setProperty('--w', R(22, 38) + 'px');
+          svg.style.setProperty('--t', t + 's');
+          svg.style.setProperty('--d', -R(0, t) + 's'); // ya van cayendo al cargar
+          svg.style.setProperty('--r0', R(-30, 30) + 'deg');
+          svg.style.setProperty('--r1', R(-120, 120) + 'deg');
+          svg.style.setProperty('--sway', R(-40, 40) + 'px');
+          rain.appendChild(svg);
+        }
+
+        const size = () => rain.style.setProperty('--h', sec.offsetHeight + 80 + 'px');
+        size();
+        addEventListener('resize', size);
+        addEventListener('load', size);
+
+        // Solo anima cuando la sección es visible
+        new IntersectionObserver(([e]) => rain.classList.toggle('on', e.isIntersecting)).observe(sec);
       })();
 
       // Música: intenta sonar al abrir; si el navegador la bloquea, arranca con el primer toque.
